@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>柚子音ぽん UST Formatter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #fff7e6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            color: #ff6f61;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #ff6f61;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #ff4c3b;
+        }
+
+        a {
+            margin-top: 15px;
+            text-decoration: none;
+            color: #ff6f61;
+            font-weight: bold;
+        }
+
+        a:hover {
+            color: #ff4c3b;
+        }
+    </style>
+</head>
+<body>
+    <h1>柚子音ぽん UST Formatter</h1>
+    <input type="file" id="ustFile" accept=".ust">
+    <button onclick="processUST()">Replace Lyrics</button>
+    <a id="downloadLink" style="display:none;">Download Modified UST</a>
+
+    <script>
+        function processUST() {
+            const fileInput = document.getElementById('ustFile');
+            if (!fileInput.files.length) {
+                alert('Please select a UST file first.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                let content = e.target.result;
+
+                // Replace lyrics only if they are NOT 'あ' or 'い'
+                content = content.replace(/Lyric=(.*)/g, (match, p1) => {
+                    if (p1 === 'あ' || p1 === 'い') {
+                        return match; // leave it alone
+                    } else {
+                        const newLyric = Math.random() < 0.5 ? 'い' : 'あ';
+                        return `Lyric=${newLyric}`;
+                    }
+                });
+
+                // Create a downloadable blob
+                const blob = new Blob([content], {type: 'text/plain'});
+                const url = URL.createObjectURL(blob);
+                const downloadLink = document.getElementById('downloadLink');
+                downloadLink.href = url;
+
+                // Add 柚子音ぽん to the filename
+                const originalName = file.name.replace('.ust', '');
+                downloadLink.download = `柚子音ぽん_${originalName}_modified.ust`;
+
+                downloadLink.style.display = 'inline';
+                downloadLink.textContent = 'Download Modified UST';
+            };
+
+            reader.readAsText(file, 'UTF-8');
+        }
+    </script>
+</body>
+</html>
