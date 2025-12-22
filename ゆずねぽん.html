@@ -15,12 +15,10 @@
             height: 100vh;
             margin: 0;
         }
-
         h1 {
             color: #ff6f61;
-            margin-bottom: 20px;
+            margin-bottom: 1rem;
         }
-
         input, button {
             padding: 10px 15px;
             margin: 5px 0;
@@ -28,29 +26,24 @@
             border: 1px solid #ccc;
             font-size: 16px;
         }
-
         button {
             background-color: #ff6f61;
             color: white;
             border: none;
             cursor: pointer;
         }
-
-        button:hover {
-            background-color: #ff4c3b;
-        }
-
+        button:hover { background-color: #ff4c3b; }
         a {
             margin-top: 15px;
             text-decoration: none;
             color: #ff6f61;
             font-weight: bold;
         }
-
-        a:hover {
-            color: #ff4c3b;
-        }
+        a:hover { color: #ff4c3b; }
     </style>
+
+    <!-- Include encoding.js so we can convert Shift_JIS properly -->
+    <script src="https://unpkg.com/encoding-japanese@2.2.0/encoding.min.js"></script>
 </head>
 <body>
     <h1>柚子音ぽん UST Formatter</h1>
@@ -59,45 +52,57 @@
     <a id="downloadLink" style="display:none;">Download Modified UST</a>
 
     <script>
-        function processUST() {
-            const fileInput = document.getElementById('ustFile');
-            if (!fileInput.files.length) {
-                alert('Please select a UST file first.');
-                return;
-            }
-
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-
-            reader.onload = function(e) {
-                let content = e.target.result;
-
-                // Alternating い and あ
-                let toggle = true;
-                content = content.replace(/Lyric=(.*)/g, (match, p1) => {
-                    if (p1 === 'あ' || p1 === 'い') return match;
-                    const newLyric = toggle ? 'い' : 'あ';
-                    toggle = !toggle;
-                    return `Lyric=${newLyric}`;
-                });
-
-                // Create downloadable blob (UTF-8)
-                const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
-                const url = URL.createObjectURL(blob);
-
-                const downloadLink = document.getElementById('downloadLink');
-                downloadLink.href = url;
-
-                // Prepend 柚子音ぽん to filename
-                const originalName = file.name.replace('.ust', '');
-                downloadLink.download = `柚子音ぽん_${originalName}_modified.ust`;
-
-                downloadLink.style.display = 'inline';
-                downloadLink.textContent = 'Download Modified UST';
-            };
-
-            reader.readAsText(file, 'UTF-8');
+    function processUST() {
+        const fileInput = document.getElementById('ustFile');
+        if (!fileInput.files.length) {
+            alert('Please select a UST file first.');
+            return;
         }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            // Read raw bytes
+            const sjisBytes = new Uint8Array(e.target.result);
+
+            // Convert from Shift_JIS to JS string
+            const unicodeStr = Encoding.convert(sjisBytes, {
+                to: 'UNICODE',
+                from: 'SJIS',
+                type: 'string'
+            });
+
+            // Replace lyrics but leave あ / い alone
+            let toggle = true;
+            const replaced = unicodeStr.replace(/Lyric=(.*)/g, (match, lyric) => {
+                if (lyric === 'あ' || lyric === 'い') return match;
+                const newL = toggle ? 'い' : 'あ';
+                toggle = !toggle;
+                return `Lyric=${newL}`;
+            });
+
+            // Encode back into Shift_JIS bytes
+            const outBytes = Encoding.convert(replaced, {
+                to: 'SJIS',
+                from: 'UNICODE'
+            });
+
+            // Create download blob
+            const blob = new Blob([new Uint8Array(outBytes)], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = url;
+
+            const baseName = file.name.replace(/\.ust$/i, '');
+            downloadLink.download = `柚子音ぽん_${baseName}_modified.ust`;
+            downloadLink.style.display = 'inline';
+            downloadLink.textContent = 'Download Modified UST';
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
     </script>
 </body>
 </html>
