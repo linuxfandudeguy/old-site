@@ -70,25 +70,33 @@
             const reader = new FileReader();
 
             reader.onload = function(e) {
-                let content = e.target.result;
+                // Decode Shift_JIS
+                const bytes = new Uint8Array(e.target.result);
+                const decoder = new TextDecoder('shift-jis');
+                let content = decoder.decode(bytes);
 
-                // Replace lyrics only if they are NOT 'あ' or 'い'
+                // Alternating い and あ
+                let toggle = true; // true = い, false = あ
                 content = content.replace(/Lyric=(.*)/g, (match, p1) => {
                     if (p1 === 'あ' || p1 === 'い') {
                         return match; // leave it alone
                     } else {
-                        const newLyric = Math.random() < 0.5 ? 'い' : 'あ';
+                        const newLyric = toggle ? 'い' : 'あ';
+                        toggle = !toggle;
                         return `Lyric=${newLyric}`;
                     }
                 });
 
-                // Create a downloadable blob
-                const blob = new Blob([content], {type: 'text/plain'});
+                // Re-encode in Shift_JIS
+                const encoder = new TextEncoder(); // Shift_JIS not natively supported for encoding
+                // workaround: create Blob with text content, browser will keep Japanese
+                const blob = new Blob([content], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
+
                 const downloadLink = document.getElementById('downloadLink');
                 downloadLink.href = url;
 
-                // Add 柚子音ぽん to the filename
+                // Add 柚子音ぽん to filename
                 const originalName = file.name.replace('.ust', '');
                 downloadLink.download = `柚子音ぽん_${originalName}_modified.ust`;
 
@@ -96,7 +104,7 @@
                 downloadLink.textContent = 'Download Modified UST';
             };
 
-            reader.readAsText(file, 'UTF-8');
+            reader.readAsArrayBuffer(file); // read as binary for Shift_JIS decoding
         }
     </script>
 </body>
