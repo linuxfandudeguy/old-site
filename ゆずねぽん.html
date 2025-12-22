@@ -1,4 +1,35 @@
-{
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>柚子音ぽん UST Formatter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #fff7e6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            color: #ff6f61;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
             background-color: #ff6f61;
             color: white;
             border: none;
@@ -39,33 +70,25 @@
             const reader = new FileReader();
 
             reader.onload = function(e) {
-                // Decode Shift_JIS
-                const bytes = new Uint8Array(e.target.result);
-                const decoder = new TextDecoder('shift-jis');
-                let content = decoder.decode(bytes);
+                let content = e.target.result;
 
                 // Alternating い and あ
-                let toggle = true; // true = い, false = あ
+                let toggle = true;
                 content = content.replace(/Lyric=(.*)/g, (match, p1) => {
-                    if (p1 === 'あ' || p1 === 'い') {
-                        return match; // leave it alone
-                    } else {
-                        const newLyric = toggle ? 'い' : 'あ';
-                        toggle = !toggle;
-                        return `Lyric=${newLyric}`;
-                    }
+                    if (p1 === 'あ' || p1 === 'い') return match;
+                    const newLyric = toggle ? 'い' : 'あ';
+                    toggle = !toggle;
+                    return `Lyric=${newLyric}`;
                 });
 
-                // Re-encode in Shift_JIS
-                const encoder = new TextEncoder(); // Shift_JIS not natively supported for encoding
-                // workaround: create Blob with text content, browser will keep Japanese
-                const blob = new Blob([content], { type: 'application/octet-stream' });
+                // Create downloadable blob (UTF-8)
+                const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
                 const url = URL.createObjectURL(blob);
 
                 const downloadLink = document.getElementById('downloadLink');
                 downloadLink.href = url;
 
-                // Add 柚子音ぽん to filename
+                // Prepend 柚子音ぽん to filename
                 const originalName = file.name.replace('.ust', '');
                 downloadLink.download = `柚子音ぽん_${originalName}_modified.ust`;
 
@@ -73,7 +96,7 @@
                 downloadLink.textContent = 'Download Modified UST';
             };
 
-            reader.readAsArrayBuffer(file); // read as binary for Shift_JIS decoding
+            reader.readAsText(file, 'UTF-8');
         }
     </script>
 </body>
